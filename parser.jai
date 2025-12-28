@@ -369,6 +369,7 @@ Union :: struct {
     using #as node: Node;
     kind = .UNION;
     polymorphic_arguments: [] *Node;
+    tag: *Node;
 
     block: *Block;
     notes: [..] *Note;
@@ -2121,6 +2122,16 @@ parse_union :: (parser: *Parser) -> *Union {
         _union.polymorphic_arguments = delimited(parser, #char "(", #char ")", #char ",", _union);
     }
 
+    // Tagged Union tag
+    if is_token(parser.lexer, .IDENTIFIER) {
+    	ident := eat_token(parser.lexer, .IDENTIFIER);
+     	if ident.string_value == "kind" && is_token(parser.lexer, #char ":") {
+      		if maybe_eat_token(parser.lexer, #char ":") {
+        		_union.tag = parse(parser, _union);
+        	}
+      	}
+    }
+
     if is_token(parser.lexer, #char "{") {
         saved_inside_type_inst := parser.inside_type_inst;
         parser.inside_type_inst = false;
@@ -3323,7 +3334,7 @@ parse_if :: (parser: *Parser, kind: If.If_Kind = .UNKNOWN, compile_time := false
         // NOTE: In ifs without blocks statements need the semicolon. For example: if true then print("true"); else print("false");
         maybe_eat_token(parser.lexer, #char ";");
 
-        else_found, else_token := maybe_eat_token(parser.lexer, .KEYWORD_ELSE); 
+        else_found, else_token := maybe_eat_token(parser.lexer, .KEYWORD_ELSE);
         if else_found {
             _if.else_location = .{else_token.l0, else_token.c0, else_token.l1, else_token.c1, _if.location.file};
             _if._else = parse(parser, _if, _if.if_kind == .IFX);

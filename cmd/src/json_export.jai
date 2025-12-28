@@ -1,5 +1,5 @@
 
-#import "Jason";
+#import "jaison";
 
 is_array_of_nodes :: (info: *Type_Info) -> bool {
     if info.type != .ARRAY return false;
@@ -165,8 +165,16 @@ struct_with_nodes_to_json :: (node: *$T/Node) -> string {
             }
 
             if member.type.type == .STRUCT || is_pointer_to_struct(member.type) {
-                // Hardcoded skip!!
+                // @TODO: Hardcoded skip!!
                 if member.name == "header_location" {
+                    print_to_builder(*builder, #string STR
+                        append(*json_builder, "\"\"");
+                    STR, member.name);
+                    continue;
+                }
+
+                // @TODO: Hardcoded skip!!
+                if member.name == "else_location" {
                     print_to_builder(*builder, #string STR
                         append(*json_builder, "\"\"");
                     STR, member.name);
@@ -229,4 +237,3 @@ to_json :: (node: *Node) -> string {
 
     return "";
 }
-
