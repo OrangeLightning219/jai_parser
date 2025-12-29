@@ -1581,9 +1581,9 @@ parse_node :: (parser: *Parser, parent: *Node) -> *Node {
         return parse_literal(parser);
     }
 
-    // Block
+    // Block or dotless struct literal
     if is_token(parser.lexer, #char "{") {
-        return parse_block(parser, false);
+   		return parse_block_or_dotless_struct_literal(parser, parent);
     }
 
     // Array_Type
@@ -2204,6 +2204,34 @@ parse_enum :: (parser: *Parser, is_enum_flags: bool) -> *Enum {
     _enum.notes = notes;
 
     return _enum;
+}
+
+parse_block_or_dotless_struct_literal :: (parser: *Parser, parent: *Node) -> *Node {
+    if parent && (
+           parent.kind == .BINARY_OPERATION
+        || parent.kind == .RETURN
+        || parent.kind == .LITERAL
+        || parent.kind == .PROCEDURE_CALL
+        || parent.kind == .DECLARATION && !parent.(*Declaration).const
+    ) {
+        eat_token(parser.lexer, #char "{");
+
+        literal := New(Literal);
+        literal.value_type = .STRUCT;
+
+        literal.value_type = .STRUCT;
+        literal.values.struct_literal_info.body = parse_until(parser, token => token.kind == #char "}", #char ",", parent=literal);
+        eat_token(parser.lexer, #char "}");
+
+        // Binary operation
+        if is_operator(peek_token(parser.lexer)) {
+            return parse_binary_operation(parser, literal);
+        }
+
+        return literal;
+    }
+
+    return parse_block(parser, false);
 }
 
 // {}
@@ -2865,7 +2893,6 @@ parse_array_or_struct_literal :: (parser: *Parser, type: *Node) -> *Node {
         type.parent = literal;
         parser.node_visit(type, parser.user_data);
     }
-
 
     if maybe_eat_token(parser.lexer, .BEGIN_ARRAY_LITERAL) {
         literal.value_type = .ARRAY;

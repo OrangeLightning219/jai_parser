@@ -1,5 +1,0 @@
-
-main :: () {
-    patrik: Programmer;
-    patrik,
-}

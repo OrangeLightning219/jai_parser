@@ -12,11 +12,11 @@ Person :: struct {
     name: string;
     age: int;
     gender: Gender;
-    
+
     friends: []*Person;
 }
 
-PI :: 3.13;
+PI :: 3.14;
 
 main :: () {
     percentage: int;
