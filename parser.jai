@@ -2958,13 +2958,16 @@ parse_array_subscript :: (parser: *Parser, expression: *Node) -> *Node {
     array_subscript.expression.parent = array_subscript;
     parser.node_visit(array_subscript.expression, parser.user_data);
 
+    set_start_location(array_subscript, expression);
+
     eat_token(parser.lexer, #char "[");
 
     if !is_token(parser.lexer, #char "]") {
         array_subscript.subscript = parse(parser, array_subscript);
     }
 
-    eat_token(parser.lexer, #char "]");
+    end_token := eat_token(parser.lexer, #char "]");
+    set_end_location(array_subscript, end_token);
 
     // Binary operation
     if is_operator(peek_token(parser.lexer)) {
@@ -3086,38 +3089,31 @@ parse_unary_operation :: (parser: *Parser) -> *Node {
     return unary_operation;
 }
 
-parse_binary_operation :: (parser: *Parser, left: *Node) -> *Node {
-    // Array or Struct literal
-    // if is_token(parser.lexer, #char ".") && is_token(parser.lexer, token => token.kind == #char "[" || token.kind == #char "{", 1) {
-    //     return parse_array_or_struct_literal(parser, left);
-    // }
-
-    // NOTE: For cases like this: a :: (proc: (b: int) -> bool = null, c: int = 0) we don't want the 'bool = null' to parse as a binary operation.
-    if is_token(parser.lexer, #char "=") && parser.inside_proc_returns {
-        return left;
-    }
-
+// dot binary operation, postfix pointer defer, posfix cast
+parse_postfix :: (parser: *Parser, left: *Node) -> *Node {
     initial_left_parent := left.parent;
 
     binary_operation := New(Binary_Operation);
 
+    binary_operation.operation = .DOT;
     binary_operation.left = left;
     binary_operation.left.parent = binary_operation;
     parser.node_visit(binary_operation.left, parser.user_data);
 
     set_start_location(binary_operation, left);
 
-    op := eat_token(parser.lexer);
-    assert(is_operator(op));
-    binary_operation.operation = create_operator_from_token(op);
+    eat_token(parser.lexer, #char ".");
 
     // pointer.*
-    if binary_operation.operation == .DOT && maybe_eat_token(parser.lexer, #char "*") {
+    if maybe_eat_token(parser.lexer, #char "*") {
         unary_operation := New(Unary_Operation);
         unary_operation.operation = .POINTER_DEREFERENCE;
 
         unary_operation.expression = left;
         binary_operation.left.parent = unary_operation;
+
+        set_start_location(unary_operation, left);
+        set_end_location(unary_operation, peek_token(parser.lexer, -1));
 
         free(binary_operation);
 
@@ -3135,12 +3131,84 @@ parse_binary_operation :: (parser: *Parser, left: *Node) -> *Node {
     }
 
     // NOTE: Postfix cast: a.(*int)
-    if binary_operation.operation == .DOT && is_token(parser.lexer, #char "(") {
+    if is_token(parser.lexer, #char "(") {
         free(binary_operation);
         _cast := parse_cast(parser, false, left);
         _cast.parent = initial_left_parent;
         return _cast;
     }
+
+    // Guard?
+    if is_token(parser.lexer, #char "{") || is_token(parser.lexer, #char "}") {
+        return binary_operation;
+    }
+
+    // right side
+    if is_token(parser.lexer, .IDENTIFIER) {
+        ident_token := eat_token(parser.lexer, .IDENTIFIER);
+        ident := parse_identifier(parser, ident_token);
+        set_start_location(ident, ident_token);
+        set_end_location(ident, peek_token(parser.lexer, -1));
+
+        next_token := peek_token(parser.lexer);
+        if next_token && next_token.kind == #char "." {
+            binary_operation.right = parse_postfix(parser, ident);
+        } else if next_token && next_token.kind == #char "[" {
+            binary_operation.right = parse_array_subscript(parser, ident);
+        } else if next_token && next_token.kind == #char "(" {
+            binary_operation.right = parse_procedure_call(parser, ident);
+        } else {
+            binary_operation.right = ident;
+        }
+
+        if binary_operation.right != ident {
+            set_start_location(binary_operation.right, next_token);
+            set_end_location(binary_operation.right, peek_token(parser.lexer, -1));
+        }
+    }
+
+    if binary_operation.right {
+        binary_operation.right.parent = binary_operation;
+        set_end_location(binary_operation, binary_operation.right);
+    } else {
+        set_end_location(binary_operation, binary_operation.left);
+    }
+
+    if is_operator(peek_token(parser.lexer)) {
+        return parse_binary_operation(parser, binary_operation);
+    }
+
+    return binary_operation;
+}
+
+parse_binary_operation :: (parser: *Parser, left: *Node) -> *Node {
+    // Array or Struct literal
+    // if is_token(parser.lexer, #char ".") && is_token(parser.lexer, token => token.kind == #char "[" || token.kind == #char "{", 1) {
+    //     return parse_array_or_struct_literal(parser, left);
+    // }
+
+    // NOTE: For cases like this: a :: (proc: (b: int) -> bool = null, c: int = 0) we don't want the 'bool = null' to parse as a binary operation.
+    if is_token(parser.lexer, #char "=") && parser.inside_proc_returns {
+        return left;
+    }
+
+    if is_token(parser.lexer, #char ".") {
+        return parse_postfix(parser, left);
+    }
+
+    initial_left_parent := left.parent;
+
+    binary_operation := New(Binary_Operation);
+
+    binary_operation.left = left;
+    binary_operation.left.parent = binary_operation;
+    parser.node_visit(binary_operation.left, parser.user_data);
+
+    set_start_location(binary_operation, left);
+
+    op := eat_token(parser.lexer);
+    assert(is_operator(op));
+    binary_operation.operation = create_operator_from_token(op);
 
     // Guard?
     if is_token(parser.lexer, #char "{") || is_token(parser.lexer, #char "}") {
@@ -3163,6 +3231,10 @@ parse_binary_operation :: (parser: *Parser, left: *Node) -> *Node {
             other_binary_op.left = binary_operation;
             binary_operation.parent = other_binary_op;
 
+            set_end_location(binary_operation, binary_operation.right);
+            set_start_location(other_binary_op, other_binary_op.left);
+            set_end_location(other_binary_op, other_binary_op.right);
+
             return other_binary_op;
         }
     }
@@ -3170,7 +3242,6 @@ parse_binary_operation :: (parser: *Parser, left: *Node) -> *Node {
     binary_operation.right = right;
 
     set_end_location(binary_operation, binary_operation.right);
-
     return binary_operation;
 }
 
@@ -3467,6 +3538,12 @@ parse_cast :: (parser: *Parser, auto: bool = false, expression: *Node = null) ->
     _cast := New(Cast);
     _cast.auto = auto;
 
+    if expression {
+        set_start_location(_cast, expression);
+    } else {
+        set_start_location(_cast, peek_token(parser.lexer));
+    }
+
     if !expression {
         eat_token(parser.lexer, ifx auto then Token.Kind.KEYWORD_AUTO_CAST else Token.Kind.KEYWORD_CAST);
 
@@ -3507,6 +3584,7 @@ parse_cast :: (parser: *Parser, auto: bool = false, expression: *Node = null) ->
     if _cast.postfix || _cast.function_style {
         // Binary operation
         if is_operator(peek_token(parser.lexer)) {
+            set_end_location(_cast, peek_token(parser.lexer));
             return parse_binary_operation(parser, _cast);
         }
     }
