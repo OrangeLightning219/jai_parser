@@ -10,4 +10,10 @@ call.to().result;
 
 player.hp -= enemy.attack_power * enemy.level;
 
-name.count == 0 || false;
+if name.count == 0 || false {
+
+}
+
+if name. == 0 || false {
+
+}

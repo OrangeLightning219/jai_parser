@@ -3102,7 +3102,7 @@ parse_postfix :: (parser: *Parser, left: *Node) -> *Node {
 
     set_start_location(binary_operation, left);
 
-    eat_token(parser.lexer, #char ".");
+    dot_token := eat_token(parser.lexer, #char ".");
 
     // pointer.*
     if maybe_eat_token(parser.lexer, #char "*") {
@@ -3171,7 +3171,7 @@ parse_postfix :: (parser: *Parser, left: *Node) -> *Node {
         binary_operation.right.parent = binary_operation;
         set_end_location(binary_operation, binary_operation.right);
     } else {
-        set_end_location(binary_operation, binary_operation.left);
+        set_end_location(binary_operation, dot_token);
     }
 
     if is_operator(peek_token(parser.lexer)) {
