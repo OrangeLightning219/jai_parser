@@ -1,27 +1,26 @@
-// enemy.armor.head.hp;
+enemy.armor.head.hp;
 
-// state.entities[0].hp;
+state.entities[0].hp;
 
-// ptr.*.deref;
+ptr.*.deref;
 
-// node.(*Player).position.x;
+node.(*Player).position.x;
 
-// call.to().result;
+call.to().result;
 
-// player.hp -= enemy.attack_power * enemy.level;
+player.hp -= enemy.attack_power * enemy.level;
 
-// if name.count == 0 || false {
+if name.count == 0 || false {
 
-// }
+}
 
-// if name. == 0 || false {
+if name. == 0 || false {
 
-// }
+}
 
-// if dt.expression.kind.count >= 0 {
+if dt.expression.kind.count >= 0 {
 
-// }
-
+}
 
 some.
 
