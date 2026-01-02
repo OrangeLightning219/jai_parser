@@ -3170,6 +3170,7 @@ parse_postfix :: (parser: *Parser, left: *Node) -> *Node {
     if binary_operation.right {
         binary_operation.right.parent = binary_operation;
         set_end_location(binary_operation, binary_operation.right);
+        parser.node_visit(binary_operation.right, parser.user_data);
     } else {
         set_end_location(binary_operation, dot_token);
     }
