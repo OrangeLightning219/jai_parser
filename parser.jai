@@ -980,7 +980,6 @@ parse :: (parser: *Parser, parent: *Node, no_comma_separated := false) -> *Node 
     base_node.parent = parent;
 
     set_start_location(base_node, current_token);
-    defer set_end_location(base_node, peek_token(parser.lexer, -1));
 
     can_contain_comma_separated_expression :: (kind: Node.Kind) -> bool {
         if kind == .BLOCK return true;
@@ -1115,6 +1114,7 @@ parse :: (parser: *Parser, parent: *Node, no_comma_separated := false) -> *Node 
                 item.expression = node;
 
                 parser.node_visit(node, parser.user_data);
+                parser.node_visit(item, parser.user_data);
 
                 nodes[it_index] = item;
             }
@@ -1204,6 +1204,7 @@ parse :: (parser: *Parser, parent: *Node, no_comma_separated := false) -> *Node 
     }
 
     parser.node_visit(base_node, parser.user_data);
+    set_end_location(base_node, peek_token(parser.lexer, -1));
 
     return base_node;
 }
