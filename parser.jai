@@ -1113,8 +1113,8 @@ parse :: (parser: *Parser, parent: *Node, no_comma_separated := false) -> *Node 
                 node.parent = item;
                 item.expression = node;
 
-                parser.node_visit(node, parser.user_data);
                 parser.node_visit(item, parser.user_data);
+                parser.node_visit(node, parser.user_data);
 
                 nodes[it_index] = item;
             }
