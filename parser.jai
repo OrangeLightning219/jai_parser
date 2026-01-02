@@ -3090,7 +3090,7 @@ parse_unary_operation :: (parser: *Parser) -> *Node {
 }
 
 // dot binary operation, postfix pointer defer, posfix cast
-parse_postfix :: (parser: *Parser, left: *Node) -> *Node {
+parse_postfix :: (parser: *Parser, left: *Node, inside_dot := false) -> *Node {
     initial_left_parent := left.parent;
 
     binary_operation := New(Binary_Operation);
@@ -3152,7 +3152,7 @@ parse_postfix :: (parser: *Parser, left: *Node) -> *Node {
 
         next_token := peek_token(parser.lexer);
         if next_token && next_token.kind == #char "." {
-            binary_operation.right = parse_postfix(parser, ident);
+            binary_operation.right = parse_postfix(parser, ident, true);
         } else if next_token && next_token.kind == #char "[" {
             binary_operation.right = parse_array_subscript(parser, ident);
         } else if next_token && next_token.kind == #char "(" {
@@ -3175,7 +3175,7 @@ parse_postfix :: (parser: *Parser, left: *Node) -> *Node {
         set_end_location(binary_operation, dot_token);
     }
 
-    if is_operator(peek_token(parser.lexer)) {
+    if !inside_dot && is_operator(peek_token(parser.lexer)) {
         return parse_binary_operation(parser, binary_operation);
     }
 

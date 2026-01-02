@@ -17,3 +17,7 @@ if name.count == 0 || false {
 if name. == 0 || false {
 
 }
+
+if dt.expression.kind.count >= 0 {
+
+}
