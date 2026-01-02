@@ -1096,7 +1096,7 @@ parse :: (parser: *Parser, parent: *Node, no_comma_separated := false) -> *Node 
         // Left overs
         parse_token_array(parser, *nodes, unprocessed_tokens);
 
-        transform_nodes_into_items :: (parent: *Node, nodes_types: Table(int, Compound_Declaration_Item.Item_Kind), nodes: []*Node, default: Compound_Declaration_Item.Item_Kind) {
+        transform_nodes_into_items :: (parser: *Parser, parent: *Node, nodes_types: Table(int, Compound_Declaration_Item.Item_Kind), nodes: []*Node, default: Compound_Declaration_Item.Item_Kind) {
             for node: nodes {
                 item := New(Compound_Declaration_Item);
                 item.parent = parent;
@@ -1113,6 +1113,8 @@ parse :: (parser: *Parser, parent: *Node, no_comma_separated := false) -> *Node 
 
                 node.parent = item;
                 item.expression = node;
+
+                parser.node_visit(node, parser.user_data);
 
                 nodes[it_index] = item;
             }
@@ -1139,7 +1141,7 @@ parse :: (parser: *Parser, parent: *Node, no_comma_separated := false) -> *Node 
         if is_compound_declaration {
             compound_declaration := New(Compound_Declaration);
 
-            transform_nodes_into_items(compound_declaration, nodes_types, nodes, default_compound_declaration_item_kind);
+            transform_nodes_into_items(parser, compound_declaration, nodes_types, nodes, default_compound_declaration_item_kind);
 
             compound_declaration.members = nodes;
             compound_declaration.parent = parent;

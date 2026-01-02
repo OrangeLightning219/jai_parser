@@ -21,3 +21,8 @@ if name. == 0 || false {
 if dt.expression.kind.count >= 0 {
 
 }
+
+
+some.
+
+l,p,x := 10, 20, 30;
