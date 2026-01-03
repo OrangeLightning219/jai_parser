@@ -2125,14 +2125,14 @@ parse_union :: (parser: *Parser) -> *Union {
         _union.polymorphic_arguments = delimited(parser, #char "(", #char ")", #char ",", _union);
     }
 
+    notes: [..] *Note;
+    if is_token(parser.lexer, .NOTE) {
+        parse_notes(parser, _union, *notes);
+    }
+
     // Tagged Union tag
-    if is_token(parser.lexer, .IDENTIFIER) {
-    	ident := eat_token(parser.lexer, .IDENTIFIER);
-     	if ident.string_value == "kind" && is_token(parser.lexer, #char ":") {
-      		if maybe_eat_token(parser.lexer, #char ":") {
-        		_union.tag = parse(parser, _union);
-        	}
-      	}
+    if is_token(parser.lexer, .IDENTIFIER) || is_token(parser.lexer, .KEYWORD_ENUM) {
+        _union.tag = parse(parser, _union);
     }
 
     if is_token(parser.lexer, #char "{") {
@@ -2151,10 +2151,10 @@ parse_union :: (parser: *Parser) -> *Union {
     }
 
     if is_token(parser.lexer, .NOTE) {
-        notes: [..] *Note;
         parse_notes(parser, _union, *notes);
-        _union.notes = notes;
     }
+
+    _union.notes = notes;
 
     return _union;
 }
