@@ -3146,8 +3146,10 @@ parse_postfix :: (parser: *Parser, left: *Node, inside_dot := false) -> *Node {
         return binary_operation;
     }
 
+    right_side_token := peek_token(parser.lexer);
+
     // right side
-    if is_token(parser.lexer, .IDENTIFIER) {
+    if right_side_token.kind == .IDENTIFIER {
         ident_token := eat_token(parser.lexer, .IDENTIFIER);
         ident := parse_identifier(parser, ident_token);
         set_start_location(ident, ident_token);
@@ -3160,6 +3162,8 @@ parse_postfix :: (parser: *Parser, left: *Node, inside_dot := false) -> *Node {
             binary_operation.right = parse_array_subscript(parser, ident);
         } else if next_token && next_token.kind == #char "(" {
             binary_operation.right = parse_procedure_call(parser, ident);
+        } else if next_token && (next_token.kind == .BEGIN_STRUCT_LITERAL || next_token.kind == .BEGIN_ARRAY_LITERAL) {
+            binary_operation.right = parse_array_or_struct_literal(parser, ident);
         } else {
             binary_operation.right = ident;
         }
@@ -3168,6 +3172,11 @@ parse_postfix :: (parser: *Parser, left: *Node, inside_dot := false) -> *Node {
             set_start_location(binary_operation.right, next_token);
             set_end_location(binary_operation.right, peek_token(parser.lexer, -1));
         }
+    } else if right_side_token.kind == .DIRECTIVE && right_side_token.string_value == "insert" {
+        eat_token(parser.lexer, .DIRECTIVE);
+        binary_operation.right = parse_directive_insert(parser);
+        set_start_location(binary_operation.right, right_side_token);
+        set_end_location(binary_operation.right, peek_token(parser.lexer, -1));
     }
 
     if binary_operation.right {
