@@ -3223,8 +3223,8 @@ parse_binary_operation :: (parser: *Parser, left: *Node) -> *Node {
     assert(is_operator(op));
     binary_operation.operation = create_operator_from_token(op);
 
-    // Guard?
-    if is_token(parser.lexer, #char "{") || is_token(parser.lexer, #char "}") {
+    // NOTE: In 'if a == {' don't parse the block
+    if is_token(parser.lexer, #char "{") && binary_operation.operation == .IS_EQUAL {
         return binary_operation;
     }
 
